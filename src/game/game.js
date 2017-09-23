@@ -9,6 +9,7 @@ export default class Game extends Phaser.State {
 
     this.cursors = this.game.input.keyboard.createCursorKeys();
 
+    this.game.world.setBounds(0, 0, 360, 700);
 
     this.RUNNING_SPEED = 180;
     this.JUMPING_SPEED = 550;
@@ -19,35 +20,46 @@ export default class Game extends Phaser.State {
   }
 
   create() {
-    this.ground = this.add.sprite(0, 570, 'ground');
+    this.ground = this.add.sprite(0, 630, 'ground');
     this.ground.scale.setTo(0.563);
     this.game.physics.arcade.enable(this.ground);
     this.ground.body.allowGravity = false;
     this.ground.body.immovable = true;
 
-
-    let platformData = [
-      {"x": 0, "y": 430},
-      {"x": 260, "y": 430},
-      {"x": 150, "y": 290},
-      {"x": 0, "y": 140}
-    ];
+    this.levelData = JSON.parse(this.game.cache.getText('level'));
 
     this.platforms = this.add.group();
     this.platforms.enableBody = true;
 
-    platformData.forEach((element) => {
+    this.levelData.platformData.forEach((element) => {
       this.platforms.create(element.x, element.y, 'platform');
     }, this);
     this.platforms.setAll('body.immovable', true);
     this.platforms.setAll('body.allowGravity', false);
 
-    this.player = this.add.sprite(100, 200, 'player', 2);
+    //fires
+    this.fires = this.add.group();
+    this.fires.enableBody = true;
+
+    let fire;
+    this.levelData.fireData.forEach((element) => {
+      fire = this.fires.create(element.x, element.y, 'fire');
+      fire.animations.add('fire', [0, 1, 2, 3], 8, true);
+      fire.play('fire');
+      fire.scale.setTo(1.2);
+    }, this);
+    this.fires.setAll('body.allowGravity', false);
+
+    this.player = this.add.sprite(this.levelData.playerStart.x, this.levelData.playerStart.y, 'player', 2);
     this.player.anchor.setTo(0.5);
     this.player.scale.setTo(0.7);
     this.player.animations.add('walking', [0, 1], 6, true);
     this.game.physics.arcade.enable(this.player);
-    this.player.customParams = {};
+    this.player.customParams = {
+      "alive": true
+    };
+
+    this.game.camera.follow(this.player);
 
     this.createOnscreenControls();
   }
@@ -55,14 +67,29 @@ export default class Game extends Phaser.State {
   update() {
     this.game.physics.arcade.collide(this.player, this.ground);
     this.game.physics.arcade.collide(this.player, this.platforms);
+    this.game.physics.arcade.overlap(this.player, this.fires, this.killPlayer);
+
+    if(!this.player.customParams.alive) {
+      this.gameOver();
+    }
 
     this.player.body.velocity.x = 0;
 
     if(this.cursors.left.isDown || this.player.customParams.isMovingLeft) {
       this.player.body.velocity.x = -this.RUNNING_SPEED;
+      this.player.scale.setTo(-0.7, 0.7);
+      this.player.play('walking');
     }
     else if(this.cursors.right.isDown || this.player.customParams.isMovingRight) {
       this.player.body.velocity.x = this.RUNNING_SPEED;
+      this.player.scale.setTo(0.7);
+      this.player.play('walking');
+    }
+    else if(!this.player.body.touching.down) {
+      this.player.frame = 3;
+    } else {
+      this.player.animations.stop();
+      this.player.frame = 2;
     }
 
     if((this.cursors.up.isDown || this.player.customParams.mustJump) && this.player.body.touching.down) {
@@ -88,6 +115,11 @@ export default class Game extends Phaser.State {
     this.leftArrow.alpha = 0.7;
     this.rightArrow.alpha = 0.7;
     this.actionButton.alpha = 0.7;
+
+    this.leftArrow.fixedToCamera = true;
+    this.rightArrow.fixedToCamera = true;
+    this.actionButton.fixedToCamera = true;
+
 
     this.actionButton.events.onInputDown.add(() => {
       this.player.customParams.mustJump = true;
@@ -123,6 +155,13 @@ export default class Game extends Phaser.State {
     this.rightArrow.events.onInputOut.add(() => {
       this.player.customParams.isMovingRight = false;
     }, this);
+  }
+
+  killPlayer(player, fire) {
+    player.customParams.alive = false;
+  }
+  gameOver() {
+    this.game.state.start('Game');
   }
 
 }

@@ -20,7 +20,7 @@ export default class Loader extends Phaser.State {
     this.load.spritesheet('fire','assets/images/fire.png', 16, 16, 4);
     this.load.spritesheet('player','assets/images/player.png', 80, 110, 4);
 
-
+    this.load.text('level', 'assets/data/level.json');
     this.load.audio('death', ['assets/audio/death.ogg', 'assets/audio/death.mp3']);
 
 
