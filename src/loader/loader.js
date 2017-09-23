@@ -11,7 +11,7 @@ export default class Loader extends Phaser.State {
     this.logo.anchor.setTo(0.5);
 
 
-    this.load.image('platform', 'assets/images/platform.png');
+    this.load.image('platform', 'assets/images/platform1.png');
     this.load.image('ground', 'assets/images/ground.png');
     this.load.image('monkey', 'assets/images/monkey.png');
     this.load.image('arrow', 'assets/images/arrow.png');
