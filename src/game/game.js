@@ -50,6 +50,13 @@ export default class Game extends Phaser.State {
     }, this);
     this.fires.setAll('body.allowGravity', false);
 
+    //monkey
+    this.monkey = this.add.sprite(this.levelData.monkey.x, this.levelData.monkey.y, 'monkey');
+    this.monkey.scale.setTo(0.2);
+    this.game.physics.arcade.enable(this.monkey);
+    this.monkey.body.allowGravity = false;
+
+
     this.player = this.add.sprite(this.levelData.playerStart.x, this.levelData.playerStart.y, 'player', 2);
     this.player.anchor.setTo(0.5);
     this.player.scale.setTo(0.7);
@@ -58,16 +65,34 @@ export default class Game extends Phaser.State {
     this.player.customParams = {
       "alive": true
     };
+    this.player.body.collideWorldBounds = true;
 
     this.game.camera.follow(this.player);
 
     this.createOnscreenControls();
+
+    this.barrels = this.add.group();
+    this.barrels.enableBody = true;
+    this.barrels.customParams = {
+      "velocityRight": true
+    }
+
+    this.createBarrel();
+    this.barrelCreator = this.game.time.events.loop(Phaser.Timer.SECOND * this.levelData.barrelFrequency, this.createBarrel, this);
+
+    this.deathSound = this.game.add.audio('death');
   }
 
   update() {
     this.game.physics.arcade.collide(this.player, this.ground);
     this.game.physics.arcade.collide(this.player, this.platforms);
+
+    this.game.physics.arcade.collide(this.barrels, this.ground);
+    this.game.physics.arcade.collide(this.barrels, this.platforms);
+
     this.game.physics.arcade.overlap(this.player, this.fires, this.killPlayer);
+    this.game.physics.arcade.overlap(this.player, this.barrels, this.killPlayer);
+    this.game.physics.arcade.overlap(this.player, this.monkey, this.win);
 
     if(!this.player.customParams.alive) {
       this.gameOver();
@@ -96,6 +121,12 @@ export default class Game extends Phaser.State {
         this.player.body.velocity.y = -this.JUMPING_SPEED;
         this.player.customParams.mustJump = false;
     }
+
+    this.barrels.forEach((element) => {
+      if((element.x < 10 || element.x > 340 ) && element.y > 600) {
+        element.kill();
+      }
+    }, this);
   }
 
   render() {
@@ -160,7 +191,31 @@ export default class Game extends Phaser.State {
   killPlayer(player, fire) {
     player.customParams.alive = false;
   }
+
+  createBarrel() {
+    let barrel = this.barrels.getFirstExists(false);
+    if(!barrel) {
+      barrel = this.barrels.create(0, 0, 'barrel');
+    }
+    barrel.body.collideWorldBounds = true;
+    barrel.body.bounce.set(1, 0);
+
+    barrel.reset(this.levelData.monkey.x + 50, this.levelData.monkey.y);
+    if(this.barrels.customParams.velocityRight) {
+      barrel.body.velocity.x = this.levelData.barrelSpeed;
+      this.barrels.customParams.velocityRight = false;
+    } else {
+      barrel.body.velocity.x = -this.levelData.barrelSpeed;
+      this.barrels.customParams.velocityRight = true;
+    }
+  }
+
+  win(player, monkey) {
+    alert("You win!!");
+    player.customParams.alive = false;
+  }
   gameOver() {
+    this.deathSound.play();
     this.game.state.start('Game');
   }
 
