@@ -1,6 +1,7 @@
 const HtmlWebpackPlugin = require('html-webpack-plugin');
 const CopyWebpackPlugin = require('copy-webpack-plugin');
 const webpack = require('webpack');
+const path = require('path');
 
 const env = process.env.NODE_ENV || 'development';
 
@@ -29,7 +30,7 @@ module.exports = {
   entry: './src/app.js',
   output: {
     filename: 'bundle.js',
-    path: './dist',
+    path: path.resolve(__dirname, 'dist'),
   },
   devtool: 'source-map',
   module: {
